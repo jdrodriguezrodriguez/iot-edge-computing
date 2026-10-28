@@ -1,0 +1,152 @@
+<div class="dashboard">
+  <header class="encabezado">
+    <div>
+      <p class="sobre-titulo">INTERNET DE LAS COSAS · IoT</p>
+      <h1>Panel de telemetría</h1>
+      <p class="subtitulo">
+        Monitoreo de temperatura recibido desde el ESP32
+      </p>
+    </div>
+
+    <div class="conexion">
+      <span class="punto"></span>
+      Actualización cada 5 segundos
+    </div>
+  </header>
+
+  @if (errorMensaje()) {
+    <div class="alerta error" role="alert">
+      {{ errorMensaje() }}
+    </div>
+  }
+
+  @if (cargando() && !ultimaLectura) {
+    <div class="mensaje">
+      Consultando las lecturas del servidor...
+    </div>
+  } @else if (!ultimaLectura) {
+    <div class="mensaje">
+      Sin datos disponibles. Esperando lecturas del ESP32.
+    </div>
+  } @else {
+    <section class="resumen">
+      <article class="tarjeta temperatura"
+        [class.critica]="ultimaLectura.temperatura > 30">
+
+        <p class="etiqueta">Temperatura actual</p>
+
+        <div class="valor">
+          {{ ultimaLectura.temperatura | number:'1.1-2' }}
+          <span>°C</span>
+        </div>
+
+        <span class="estado"
+          [class.estado-critico]="ultimaLectura.temperatura > 30">
+          {{ ultimaLectura.temperatura > 30 ? 'Crítico' : 'Normal' }}
+        </span>
+
+        <p class="detalle">
+          Límite crítico: superior a 30 °C
+        </p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="etiqueta">Promedio de las últimas 10 lecturas</p>
+
+        <div class="valor secundario">
+          {{ promedio | number:'1.1-2' }}
+          <span>°C</span>
+        </div>
+
+        <p class="detalle">Calculado con los datos recibidos</p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="etiqueta">Lecturas disponibles</p>
+
+        <div class="valor secundario">
+          {{ lecturas().length }}
+        </div>
+
+        <p class="detalle">Máximo esperado: 10 registros</p>
+      </article>
+    </section>
+
+    <section class="paneles">
+      <article class="panel">
+        <h2>Indicador de temperatura</h2>
+        <p class="descripcion">Lectura más reciente del sensor</p>
+
+        <div class="grafica gauge">
+          <ngx-charts-gauge
+            [results]="gaugeData"
+            [min]="0"
+            [max]="50"
+            [angleSpan]="240"
+            [startAngle]="-120"
+            [showAxis]="true"
+            [showText]="true"
+            [units]="'°C'">
+          </ngx-charts-gauge>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Historial de temperatura</h2>
+        <p class="descripcion">Últimas lecturas almacenadas en MongoDB</p>
+
+        <div class="grafica">
+          <ngx-charts-line-chart
+            [view]="[650, 300]"
+            [results]="chartData"
+            [xAxis]="true"
+            [yAxis]="true"
+            [showXAxisLabel]="true"
+            [showYAxisLabel]="true"
+            [xAxisLabel]="'Fecha y hora'"
+            [yAxisLabel]="'Temperatura (°C)'"
+            [autoScale]="true"
+            [timeline]="false">
+          </ngx-charts-line-chart>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel tabla-panel">
+      <h2>Últimas lecturas</h2>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Temperatura</th>
+              <th>Unidad</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (lectura of lecturas().slice().reverse(); track lectura.id ?? lectura.fecha) {
+              <tr>
+                <td>{{ lectura.fecha | date:'dd/MM/yyyy, HH:mm:ss' }}</td>
+                <td>{{ lectura.temperatura | number:'1.1-2' }} °C</td>
+                <td>{{ lectura.unidad || 'Celsius' }}</td>
+                <td>
+                  <span class="estado"
+                    [class.estado-critico]="lectura.temperatura > 30">
+                    {{ lectura.temperatura > 30 ? 'Crítico' : 'Normal' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <footer>
+    IoT Dashboard · Spring Boot · MQTT · MongoDB Atlas
+  </footer>
+</div>
